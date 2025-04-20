@@ -25,6 +25,8 @@
       background: rgba(0, 0, 0, 0.6);
       padding: 30px;
       border-radius: 15px;
+      max-width: 90%;
+      width: 600px;
     }
     .active {
       display: flex;
@@ -50,8 +52,15 @@
       border-bottom: 1px solid #333;
     }
     #question {
-      font-size: 24px;
+      font-size: 20px;
       margin: 20px;
+      text-align: center;
+    }
+    .options-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
     }
     .option {
       background: white;
@@ -61,6 +70,8 @@
       margin: 5px;
       cursor: pointer;
       border-radius: 5px;
+      min-width: 40%;
+      text-align: center;
     }
     #timer {
       font-size: 20px;
@@ -76,12 +87,17 @@
       border: none;
       border-radius: 5px;
     }
+    .math-image {
+      max-width: 100%;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
   <!-- Start Screen -->
   <div id="start-screen" class="screen active">
     <h1>Math Tower Builder</h1>
+    <p>Answer math questions correctly to build your tower!</p>
     <button onclick="startGame()">Start Game</button>
   </div>
 
@@ -89,7 +105,7 @@
   <div id="game-screen" class="screen">
     <div id="timer">Time: 60</div>
     <div id="question"></div>
-    <div id="options"></div>
+    <div id="options" class="options-container"></div>
     <div id="tower"></div>
   </div>
 
@@ -104,6 +120,7 @@
     let score = 0;
     let timeLeft = 60;
     let timerInterval;
+    let currentCorrectAnswer;
 
     const startScreen = document.getElementById("start-screen");
     const gameScreen = document.getElementById("game-screen");
@@ -113,6 +130,90 @@
     const towerEl = document.getElementById("tower");
     const timerEl = document.getElementById("timer");
     const finalScoreEl = document.getElementById("final-score");
+
+    // ACT Math questions bank
+    const actMathQuestions = [
+      // Level 1: Easy questions
+      {
+        question: "If 3x + 7 = 22, what is the value of x?",
+        options: ["5", "4", "7", "15"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "A rectangle has a length of 12 inches and a width of 8 inches. What is its area in square inches?",
+        options: ["20", "96", "40", "64"],
+        correctAnswerIndex: 1
+      },
+      {
+        question: "What is the value of 3² + 4²?",
+        options: ["25", "49", "7", "12"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "If y = 2x + 3 and x = 4, what is the value of y?",
+        options: ["11", "8", "14", "7"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "What is the slope of the line that passes through the points (2, 5) and (4, 9)?",
+        options: ["4", "2", "1/2", "3/2"],
+        correctAnswerIndex: 1
+      },
+      
+      // Level 2: Medium questions
+      {
+        question: "The average of five consecutive integers is 17. What is the largest of these integers?",
+        options: ["19", "21", "17", "15"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "A car travels 240 miles in 4 hours. What is its average speed in miles per hour?",
+        options: ["60", "50", "65", "55"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "If 2x - 5y = 20 and 3x + 2y = 7, what is the value of x?",
+        options: ["6", "5", "4", "3"],
+        correctAnswerIndex: 1
+      },
+      {
+        question: "What is the solution to the inequality 3x - 7 > 5?",
+        options: ["x > 4", "x > 12/3", "x < 4", "x > 4/3"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "A circle has a circumference of 12π. What is its radius?",
+        options: ["6", "12", "3", "24"],
+        correctAnswerIndex: 0
+      },
+      
+      // Level 3: Hard questions
+      {
+        question: "If log₂(x) = 3, what is the value of x?",
+        options: ["6", "8", "9", "16"],
+        correctAnswerIndex: 1
+      },
+      {
+        question: "In a right triangle, one leg measures 5 units and the hypotenuse measures 13 units. What is the length of the other leg?",
+        options: ["12 units", "8 units", "10 units", "√144 units"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "The function f(x) = 2x² - 3x + 1 has its minimum value at what value of x?",
+        options: ["3/4", "0", "1/2", "1"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "In how many ways can 7 different books be arranged on a shelf?",
+        options: ["5,040", "2,520", "42", "49"],
+        correctAnswerIndex: 0
+      },
+      {
+        question: "If sin(θ) = 4/5 and θ is in the first quadrant, what is the value of cos(θ)?",
+        options: ["3/5", "5/4", "1/5", "√(9/25)"],
+        correctAnswerIndex: 0
+      }
+    ];
 
     function startGame() {
       score = 0;
@@ -137,54 +238,42 @@
     }
 
     function generateQuestion() {
-      const level = score;
-      let question = "";
-      let correctAnswer;
-
-      if (level < 5) {
-        // Easy: Solve for x in x + a = b
-        const a = Math.floor(Math.random() * 10) + 1;
-        const b = Math.floor(Math.random() * 10) + a + 1;
-        question = `Solve: x + ${a} = ${b}`;
-        correctAnswer = b - a;
-      } else if (level < 10) {
-        // Medium: Solve for x in ax = b
-        const a = Math.floor(Math.random() * 9) + 2;
-        const b = (Math.floor(Math.random() * 10) + 1) * a;
-        question = `Solve: ${a}x = ${b}`;
-        correctAnswer = b / a;
+      // Select question difficulty based on score
+      let questionPool;
+      if (score < 5) {
+        // Easy questions (0-4)
+        questionPool = actMathQuestions.slice(0, 5);
+      } else if (score < 10) {
+        // Medium questions (5-9)
+        questionPool = actMathQuestions.slice(5, 10);
       } else {
-        // Hard: Solve for x in ax + b = c
-        const a = Math.floor(Math.random() * 9) + 1;
-        const x = Math.floor(Math.random() * 10) + 1;
-        const b = Math.floor(Math.random() * 10);
-        const c = a * x + b;
-        question = `Solve: ${a}x + ${b} = ${c}`;
-        correctAnswer = x;
+        // Hard questions (10+)
+        questionPool = actMathQuestions.slice(10);
       }
-
-      questionEl.textContent = question;
-
-      const options = [
-        correctAnswer,
-        correctAnswer + Math.floor(Math.random() * 3 + 1),
-        correctAnswer - Math.floor(Math.random() * 3 + 1),
-        correctAnswer + Math.floor(Math.random() * 5 + 2)
-      ];
-
-      const shuffled = options.sort(() => 0.5 - Math.random());
+      
+      // Select a random question from the appropriate pool
+      const randomIndex = Math.floor(Math.random() * questionPool.length);
+      const selectedQuestion = questionPool[randomIndex];
+      
+      // Display the question
+      questionEl.textContent = selectedQuestion.question;
+      
+      // Save the correct answer index
+      currentCorrectAnswer = selectedQuestion.correctAnswerIndex;
+      
+      // Display the options
       optionsEl.innerHTML = "";
-      shuffled.forEach(option => {
+      selectedQuestion.options.forEach((option, index) => {
         const btn = document.createElement("div");
         btn.classList.add("option");
         btn.textContent = option;
-        btn.onclick = () => checkAnswer(option, correctAnswer);
+        btn.onclick = () => checkAnswer(index);
         optionsEl.appendChild(btn);
       });
     }
 
-    function checkAnswer(selected, correct) {
-      if (selected === correct) {
+    function checkAnswer(selectedIndex) {
+      if (selectedIndex === currentCorrectAnswer) {
         score++;
         addBlock();
       }
